@@ -1,0 +1,22 @@
+import { initializeApp } from "firebase/app";
+import { getDatabase } from "firebase/database";
+import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBbJc68C2eNMOr6brPfK3PcelIZIxoOmsk",
+  authDomain: "home-automation-raspi.firebaseapp.com",
+  projectId: "home-automation-raspi",
+  storageBucket: "home-automation-raspi.appspot.com",
+  messagingSenderId: "667681328317",
+  appId: "1:667681328317:web:399d1ba1d342ec9e657bd4"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
+
+export const db = getDatabase(app);
