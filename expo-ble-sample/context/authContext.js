@@ -82,7 +82,6 @@ export const AuthContextProvider = ({ children }) => {
         });
         await Promise.all(updatePromises);
         setActiveError(null);
-        console.log('Hub activated successfully');
       } else {
         setActiveError('Activation code not found');
       }
@@ -139,6 +138,24 @@ export const AuthContextProvider = ({ children }) => {
     } catch (e) {
       console.error('Error fetching device data:', e);
       return { success: false, msg: e.message };
+    }
+  };
+
+  const countDevicesByHubId = async (hubId) => {
+  try {
+      const sensorRef = ref(db, 'Device');
+      const sensorQuery = query(sensorRef, orderByChild('HubID'), equalTo(hubId));
+      const snapshot = await get(sensorQuery);
+
+      let deviceCount = 0;
+      if (snapshot.exists()) {
+        deviceCount = snapshot.size; // Count the number of matching devices
+      }
+      console.log(`Counted ${deviceCount} devices for HubID ${hubId}`);
+      return { success: true, count: deviceCount };
+    } catch (error) {
+      console.error('Error counting devices:', error);
+      return { success: false, msg: error.message };
     }
   };
 
@@ -281,7 +298,6 @@ const updateStatus = async (HubId, deviceId, newStatus) => {
     return { success: false, msg: error.message };
   }
 };
-
   return (
     <AuthContext.Provider value={{
       user,
@@ -300,7 +316,8 @@ const updateStatus = async (HubId, deviceId, newStatus) => {
       getScannedWithRaspID,
       connectToDevice,
       getSensorDataByUserId,
-      updateStatus
+      updateStatus,
+      countDevicesByHubId
     }}>
       {children}
     </AuthContext.Provider>

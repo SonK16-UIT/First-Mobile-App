@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, FlatList, Switch, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, FlatList, Switch } from 'react-native';
 import { useRoute } from '@react-navigation/native';
-import HomeHeader2 from '../components/HomeHeader2';
 import { useAuth } from '../context/authContext';
+import { AntDesign, Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+
 
 export default function Rasp() {
   const route = useRoute();
@@ -16,13 +19,17 @@ export default function Rasp() {
   const [scannedDevices, setScannedDevices] = useState([]);
   const [sensorData, setSensorData] = useState([]);
 
+  const router = useRouter();
+
+  const handleChevron = () => {
+    router.replace('home');
+  };
+
   const handleUpdateWifi = async () => {
     const result = await updateWifiSSID(id, ssid, password);
     if (result.success) {
       setShowWifiModal(false);
       setShowScanModal(true);
-      // setSsid('');
-      // setPassword('');
     } else {
       console.error('Failed to update WiFi settings:', result.msg);
     }
@@ -33,7 +40,6 @@ export default function Rasp() {
     if (commandResult.success) {
       const scanResult = await getScannedWithRaspID(id);
       if (scanResult.success) {
-        console.log('Scanned devices:', scanResult.data); // Log scanned devices
         setScannedDevices(scanResult.data);
         fetchScannedDevices();
       } else {
@@ -45,34 +51,27 @@ export default function Rasp() {
   };
 
   const handleConnectToDevice = async (device) => {
-    console.log("Connecting to device:", device);
     const connectResult = await connectToDevice(id, device.addr, device.name);
     if (connectResult.success) {
       console.log('Connected to device:', device);
-      // Additional actions upon successful connection, if needed
     } else {
       console.error('Error connecting to device:', connectResult.msg);
     }
   };
 
-    const fetchScannedDevices = async () => {
-      const result = await getScannedWithRaspID(id);
-      if (result.success) {
-        console.log('Fetched scanned devices:', result.data); // Log fetched devices
-        setScannedDevices(result.data);
-      }
-    };
-    // fetchScannedDevices();
+  const fetchScannedDevices = async () => {
+    const result = await getScannedWithRaspID(id);
+    if (result.success) {
+      setScannedDevices(result.data);
+    }
+  };
 
   useEffect(() => {
     const fetchSensorData = async () => {
       if (user && user.uid) {
-        console.log('Fetching data for user:', id);
         const response = await getSensorDataByUserId(id);
-        console.log('Response:', response);
         if (response.success && response.data.length > 0) {
           setSensorData(response.data);
-          console.log('Sensor Data:', response.data);
         }
       }
     };
@@ -82,10 +81,9 @@ export default function Rasp() {
 
   const toggleSwitch = async (item) => {
     const newStatus = item.status === 'ON' ? 'OFF' : 'ON';
-    const result = await updateStatus(id, item.id, newStatus); // Pass the HubId and item id for updating the status
+    const result = await updateStatus(id, item.id, newStatus);
     if (result.success) {
-      console.log('Status updated successfully');
-      setSensorData(prevState => 
+      setSensorData(prevState =>
         prevState.map(device =>
           device.id === item.id ? { ...device, status: newStatus } : device
         )
@@ -99,73 +97,71 @@ export default function Rasp() {
     <View style={styles.deviceContainer}>
       {item.type === 'sensor' ? (
         <>
-          <TextInput
-            style={styles.textInput}
-            value={`${item.temperature} °C`}
-            editable={false}
-          />
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>Nhiệt độ</Text>
-            <Text style={styles.description}>Mô tả</Text>
+          <View style={styles.sensorBox}>
+            <Feather name="thermometer" size={30} color="white" />
+            <Text style={styles.sensorValue}>{item.temperature}°C</Text>
+            <Text style={styles.sensorLabel}>Temperature</Text>
           </View>
-  
-          <TextInput
-            style={styles.textInput}
-            value={`${item.humidity} RH`}
-            editable={false}
-          />
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>Độ ẩm</Text>
-            <Text style={styles.description}>Mô tả</Text>
+          <View style={styles.sensorBox}>
+            <Feather name="droplet" size={30} color="white" />
+            <Text style={styles.sensorValue}>{item.humidity}%</Text>
+            <Text style={styles.sensorLabel}>Humidity</Text>
           </View>
         </>
-      ) : item.type === 'toggle' ? (
-        <>
-          <View style={styles.switchContainer}>
-            <Switch
-              style={styles.switch}
-              onValueChange={() => toggleSwitch(item)}
-              value={item.status === 'ON'}
-            />
-          </View>
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>Bật tắt đèn</Text>
-            <Text style={styles.description}>Mô tả</Text>
-          </View>
-        </>
-      ) : null}
+      ) : (
+        <View style={styles.switchBox}>
+          <Text style={styles.sensorLabel}>{item.name}</Text>
+          <Switch
+            onValueChange={() => toggleSwitch(item)}
+            value={item.status === 'ON'}
+          />
+          <Text style={styles.sensorValue}>{item.status}</Text>
+        </View>
+      )}
     </View>
   );
 
   const renderScannedDevice = ({ item }) => (
     <TouchableOpacity style={styles.deviceItem} onPress={() => handleConnectToDevice(item)}>
-      <Text>Addr: {item.addr}</Text>
-      <Text>Name: {item.name}</Text>
+      <Text style={styles.deviceText}>Addr: {item.addr}</Text>
+      <Text style={styles.deviceText}>Name: {item.name}</Text>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <HomeHeader2 title="Quản lý Rasp" />
-      <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <TouchableOpacity style={styles.button} onPress={() => setShowWifiModal(true)}>
-          <Text style={styles.buttonText}>Thêm thiết bị</Text>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleChevron}>
+          <AntDesign name="arrowleft" size={24} color="white" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Bedroom</Text>
+      </View>
+      <FlatList
+        data={sensorData}
+        renderItem={renderSensorItem}
+        keyExtractor={(item, index) => index.toString()}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.flatListContent}
+      />
 
-        <FlatList
-          data={sensorData}
-          renderItem={renderSensorItem}
-          keyExtractor={(item, index) => index.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        />
-      </ScrollView>
+
+      <TouchableOpacity style={styles.floatingButton} onPress={() => setShowWifiModal(true)}>
+          <LinearGradient
+            colors={['#F3B28E', '#F8757C']}
+            style={styles.floatingButtonGradient}
+          >
+            <View style={styles.floatingButtonOverlay}>
+              <AntDesign name="plus" size={30} color="white" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
 
       <Modal transparent={true} visible={showWifiModal} animationType="slide">
         <View style={styles.centerView}>
           <View style={styles.modalView}>
             <TouchableOpacity style={styles.closeButton} onPress={() => setShowWifiModal(false)}>
-              <Text style={styles.closeButtonText}>X</Text>
+              <AntDesign name="close" size={25} color="white" />
             </TouchableOpacity>
             <TextInput
               style={styles.input}
@@ -181,7 +177,7 @@ export default function Rasp() {
               secureTextEntry
             />
             <TouchableOpacity style={styles.modalButton} onPress={handleUpdateWifi}>
-              <Text style={styles.buttonText}>Hoàn tất</Text>
+              <Text style={styles.buttonText}>Connect</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -191,10 +187,10 @@ export default function Rasp() {
         <View style={styles.centerView}>
           <View style={styles.modalView}>
             <TouchableOpacity style={styles.closeButton} onPress={() => setShowScanModal(false)}>
-              <Text style={styles.closeButtonText}>X</Text>
+              <AntDesign name="close" size={25} color="white" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.scanButton} onPress={handleScanDevices}>
-              <Text style={styles.buttonText}>Scan thiết bị</Text>
+              <Text style={styles.buttonText}>Scan Devices</Text>
             </TouchableOpacity>
             <FlatList
               data={scannedDevices}
@@ -211,52 +207,96 @@ export default function Rasp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#1F233A',
   },
-  scrollViewContent: {
-    flexGrow: 1,
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#1F233A',
   },
-  text: {
-    fontSize: 20,
-    margin: 20,
+  headerTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
-  button: {
-    backgroundColor: 'blue',
-    padding: 15,
+  row: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  deviceContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '45%',
+    marginVertical: 10,
+  },
+  sensorBox: {
+    backgroundColor: '#2B2F3A',
     borderRadius: 10,
+    padding: 20,
     alignItems: 'center',
-    justifyContent: 'center',
-    margin: 20,
-    width: '90%',
+    marginBottom: 10,
+    width: '100%',
+  },
+  switchBox: {
+    backgroundColor: '#2B2F3A',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
+  sensorValue: {
+    color: 'white',
+    fontSize: 16,
+    marginVertical: 10,
+  },
+  sensorLabel: {
+    color: 'gray',
+    fontSize: 14,
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 30,
     alignSelf: 'center',
   },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
+  floatingButtonGradient: {
+    width: 55,
+    height: 55,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  floatingButtonOverlay: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   centerView: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalView: {
-    backgroundColor: 'white',
-    padding: 35,
+    backgroundColor: '#2B2F3A',
+    padding: 20,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    width: '90%',
+    width: '80%',
+    alignItems: 'center',
   },
   closeButton: {
     alignSelf: 'flex-end',
-    padding: 10,
-  },
-  closeButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   input: {
     height: 40,
@@ -265,79 +305,33 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingHorizontal: 10,
     width: '100%',
+    color: 'white',
   },
   modalButton: {
-    backgroundColor: 'blue',
+    backgroundColor: '#F8757C',
     padding: 10,
     borderRadius: 20,
     alignItems: 'center',
-    justifyContent: 'center',
     width: '100%',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
   scanButton: {
-    backgroundColor: 'green',
+    backgroundColor: '#F8757C',
     padding: 10,
     borderRadius: 20,
     alignItems: 'center',
-    justifyContent: 'center',
     width: '100%',
     marginVertical: 20,
-  },
-  deviceContainer: {
-    padding: 10,
-    margin: 10,
-    borderRadius: 15,
-    backgroundColor: '#fff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  textInput: {
-    width: 120,
-    height: 120,
-    borderRadius: 15,
-    borderColor: '#000',
-    borderWidth: 1,
-    textAlign: 'center',
-    padding: 10,
-  },
-  switchContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 15,
-    borderColor: '#000',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  switch: {
-    transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }], // Scale the switch to make it more visible
-  },
-  textContainer: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  title: {
-    fontFamily: 'outfit-bold',
-    fontSize: 20,
-  },
-  description: {
-    fontFamily: 'outfit',
-    color: 'gray', // Replace Colors.GRAY with 'gray'
   },
   deviceItem: {
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
-  containerScroll: {
-    flexDirection: 'row', 
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-    margin: 10,
-    borderRadius: 15,
-    backgroundColor: '#fff',
-    gap: 10
-  }
+  deviceText: {
+    color: 'white',
+  },
 });

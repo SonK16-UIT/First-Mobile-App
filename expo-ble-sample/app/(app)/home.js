@@ -1,125 +1,198 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Platform, StyleSheet, Modal, TouchableOpacity, TextInput, FlatList } from 'react-native';
-import { useAuth } from '../../context/authContext';
+import { View, Text, Platform, StyleSheet, TouchableOpacity, TextInput, FlatList, Pressable } from 'react-native';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchHubData, activateHubThunk, clearHubMessages } from '../../redux/slices/hub';
 import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../context/authContext';
+import CustomModal from '../../components/CustomModal';
+import { AntDesign } from '@expo/vector-icons';
+import WeatherWidget from '../../components/WeatherWidget';
+import { LinearGradient } from 'expo-linear-gradient';
+import theme from '../../theme';
+import HubBox from '../../components/HubBox';
 
 const ios = Platform.OS === 'ios';
 
 export default function Home() {
-  const { user, activateHub, activeError, getRaspDataByUserId, DeleteActivation, createHub } = useAuth();
+  const dispatch = useDispatch();
+  const { user, activeError, DeleteActivation, activateHub, getRaspDataByUserId } = useAuth();
   const { top } = useSafeAreaInsets();
   const [showModal, setShowModal] = useState(false);
   const [code, setCode] = useState('');
-  const [devices, setDevices] = useState([]);
   const navigation = useNavigation();
 
+  const hub = useSelector((state) => state.hub.hub);
+  const hubLoading = useSelector((state) => state.hub.hubLoading);
+  const hubError = useSelector((state) => state.hub.hubError);
+  const hubSuccess = useSelector((state) => state.hub.hubSuccess);
+  const devices = hub || [];
+
   const handleActivateCode = async () => {
-    await activateHub(code, user.uid);
-    if (!activeError) {
-      setTimeout(() => {
-        setShowModal(false);
-        fetchData(); // Fetch data again to update the list
-      }, 1000); // 1 second delay
+    await dispatch(activateHubThunk({ code, userId: user.uid, activateHub, getRaspDataByUserId }));
+    if (!hubError) {
+      setShowModal(false);
     }
   };
 
   const handleDelete = async (raspId) => {
     const result = await DeleteActivation(raspId);
     if (result.success) {
-      fetchData(); // Refresh the list after deletion
-    }
-  };
-
-  const fetchData = async () => {
-    if (user && user.uid) {
-      try {
-        console.log("Fetching data for user:", user.uid);
-        const result = await getRaspDataByUserId(user.uid);
-        if (result.success) {
-          console.log("Fetched device data:", result.data);
-          setDevices(result.data);
-        }
-      } catch (error) {
-        console.error('Error fetching device data:', error);
-      }
-    } else {
-      console.log("User is not loaded yet");
+      dispatch(fetchHubData({ userId: user.uid, getRaspDataByUserId })); 
     }
   };
 
   useEffect(() => {
-    console.log("User state changed:", user);
     if (user) {
-      fetchData();
+      dispatch(fetchHubData({ userId: user.uid, getRaspDataByUserId }));
     }
-  }, [user]);
+  }, [user, dispatch]);
+
+  useEffect(() => {
+    if (hubSuccess || hubError) {
+      setTimeout(() => {
+        dispatch(clearHubMessages());
+      }, 3000); 
+    }
+  }, [hubSuccess, hubError, dispatch]);
 
   const renderItem = ({ item }) => (
-    <View style={styles.box}>
-      <TouchableOpacity onPress={() => navigation.navigate('rasp', { id: item.id })}>
-        <Text style={styles.title}>Rasp ID: {item.id}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={() => handleDelete(item.id)}>
-        <Text style={styles.buttonText}>Xóa</Text>
-      </TouchableOpacity>
-    </View>
+    <HubBox
+      item={item}
+      onDelete={handleDelete}
+      onNavigate={(id) => navigation.navigate('rasp', { id })}
+    />
   );
 
   return (
-    <View style={{ flex: 1, paddingTop: ios ? top : top + 10 }}>
+    <LinearGradient
+      colors={['#1F233A', '#1F233A']}
+      style={{ flex: 1, paddingTop: ios ? top : top + 10 }}
+    >
       <View style={styles.main}>
-        <Modal transparent={true} visible={showModal} animationType="slide">
-          <View style={styles.centerView}>
-            <View style={styles.modalView}>
-              <TouchableOpacity style={styles.closeButton} onPress={() => setShowModal(false)}>
-                <Text style={styles.closeButtonText}>X</Text>
-              </TouchableOpacity>
-              <TextInput
-                style={styles.input}
-                placeholder="Nhập mã"
-                value={code}
-                onChangeText={setCode}
-              />
-              {activeError && <Text style={styles.errorText}>{activeError}</Text>}
-              <TouchableOpacity style={styles.button} onPress={handleActivateCode}>
-                <Text style={styles.buttonText}>Kích hoạt code</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-        <View style={styles.buttonView}>
-          <TouchableOpacity style={styles.button} onPress={() => setShowModal(true)}>
-            <Text style={styles.buttonText}>Thêm hub</Text>
-          </TouchableOpacity>
+        <View style={styles.centerView}>
+          <WeatherWidget />
         </View>
-        <FlatList
-          data={devices}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-        />
+        <CustomModal isOpen={showModal} withInput>
+          <View className="bg-gray-900 p-6 rounded-3xl w-full max-w-md mx-auto">
+            <TouchableOpacity onPress={() => setShowModal(false)} className="absolute top-4 right-4">
+              <AntDesign name="close" size={25} color="white" />
+            </TouchableOpacity>
+            <Text className="text-white text-xl font-bold mb-2">Nhập mã hub của bạn</Text>
+            <Text className="text-gray-400 mb-4">Bằng cách nhập mã, bạn sẽ đăng ký hub với Nestify và thêm vào bộ sưu tập của bạn</Text>
+            <Text className="text-white text-sm font-semibold mb-1">MÃ SẢN PHẨM MẪU</Text>
+            <Text className="text-gray-400 mb-4">AAAAA-BBBBB-CCCCC-DDDDD-EEEEE</Text>
+            <Text className="text-gray-400 mb-4">AAAABBBBCCCCDDDDEEEE</Text>
+            <TextInput
+              className="bg-gray-800 text-white p-4 rounded-full mb-4"
+              placeholder="Enter your code here..."
+              placeholderTextColor="gray"
+              value={code}
+              onChangeText={setCode}
+            />
+            {activeError && <Text className="text-red-500 mb-4">{activeError}</Text>}
+            <Pressable onPress={handleActivateCode} style={styles.buttonContainer}>
+              <LinearGradient
+                colors={['#F3B28E', '#F8757C']}
+                style={styles.gradientButton}
+              >
+                <Text style={styles.buttonText}>Kích hoạt</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </CustomModal>
+        <View style={styles.hubsContainer}>
+          <View style={styles.hubsHeader}>
+            <Text style={styles.headerText}>Hub của bạn</Text>
+            <TouchableOpacity style={styles.addButton} onPress={() => setShowModal(true)}>
+              <LinearGradient
+                colors={['#F3B28E', '#F8757C']}
+                style={styles.addButtonGradient}
+              >
+                <Text style={styles.addButtonText}>Thêm hub</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={devices}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+          />
+        </View>
+        <TouchableOpacity style={styles.floatingButton} onPress={() => setShowModal(true)}>
+          <LinearGradient
+            colors={['#F3B28E', '#F8757C']}
+            style={styles.floatingButtonGradient}
+          >
+            <View style={styles.floatingButtonOverlay}>
+              <AntDesign name="plus" size={30} color="white" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   main: {
     flex: 1,
+    paddingHorizontal: 10,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  greeting: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  hubsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  headerText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  addButton: {
+    position: 'absolute',
+    right: 0,
+  },
+  addButtonGradient: {
+    paddingVertical: 6,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+  },
+  addButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
   buttonView: {
     justifyContent: 'flex-start',
-    padding: 20,
+    padding: 10, // Reduced padding
   },
   centerView: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalView: {
     backgroundColor: 'white',
-    padding: 35,
+    padding: 20, // Reduced padding
     borderRadius: 20,
     shadowColor: '#000',
     shadowOpacity: 0.25,
@@ -128,7 +201,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     alignSelf: 'flex-end',
-    padding: 10,
+    padding: 5, // Reduced padding
   },
   closeButtonText: {
     fontSize: 18,
@@ -146,26 +219,56 @@ const styles = StyleSheet.create({
     color: 'red',
     marginBottom: 20,
   },
-  box: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    flexDirection: 'row',
+  successText: {
+    color: 'green',
+    marginBottom: 20,
+  },
+  hubsContainer: {
+    flex: 1,
+  },
+  row: {
     justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingHorizontal: 0, // No padding between columns
   },
-  title: {
-    fontSize: 18,
+  floatingButton: {
+    position: 'absolute',
+    bottom: 30,
+    alignSelf: 'center',
   },
-  button: {
-    backgroundColor: 'red',
-    padding: 10,
-    borderRadius: 20,
-    alignItems: 'center',
+  floatingButtonGradient: {
+    width: 55,
+    height: 55,
+    borderRadius: 30,
     justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  floatingButtonOverlay: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  buttonContainer: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gradientButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
   },
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

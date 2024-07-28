@@ -23,6 +23,7 @@ export default function HomeHeader2({title}) {
     const router = useRouter();
     const {user,logout} = useAuth();
     const {top} = useSafeAreaInsets();
+    
     const handleProfile = ()=>{
         router.replace('home')
     }
