@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { useAuth } from '../../context/authContext';
 
 // Fetch hub data
 export const fetchHubData = createAsyncThunk(
@@ -22,6 +21,20 @@ export const activateHubThunk = createAsyncThunk(
       await activateHub(code, userId);
       await dispatch(fetchHubData({ userId, getRaspDataByUserId }));
       return true;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Update hub name
+export const updateHubNameThunk = createAsyncThunk(
+  'hub/updateHubName',
+  async ({ hubId, name, updateHubName, userId, getRaspDataByUserId }, { dispatch, rejectWithValue }) => {
+    try {
+      await updateHubName(hubId, name);
+      await dispatch(fetchHubData({ userId, getRaspDataByUserId }));
+      return { hubId, name };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -68,6 +81,17 @@ const hubSlice = createSlice({
         state.hubSuccess = 'Hub activated successfully';
       })
       .addCase(activateHubThunk.rejected, (state, action) => {
+        state.hubLoading = false;
+        state.hubError = action.payload;
+      })
+      .addCase(updateHubNameThunk.pending, (state) => {
+        state.hubLoading = true;
+      })
+      .addCase(updateHubNameThunk.fulfilled, (state, action) => {
+        state.hubLoading = false;
+        state.hubSuccess = 'Hub name updated successfully';
+      })
+      .addCase(updateHubNameThunk.rejected, (state, action) => {
         state.hubLoading = false;
         state.hubError = action.payload;
       });

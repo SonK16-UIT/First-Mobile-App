@@ -12,6 +12,8 @@ import WeatherWidget from '../../components/WeatherWidget';
 import { LinearGradient } from 'expo-linear-gradient';
 import theme from '../../theme';
 import HubBox from '../../components/HubBox';
+import { router } from 'expo-router';
+import CustomButtonHandle from '../../components/CustomButtonHandle';
 
 const ios = Platform.OS === 'ios';
 
@@ -61,7 +63,7 @@ export default function Home() {
     <HubBox
       item={item}
       onDelete={handleDelete}
-      onNavigate={(id) => navigation.navigate('rasp', { id })}
+      onNavigate={(id) => router.push(`/connect/rasp?id=${id}`)}
     />
   );
 
@@ -71,20 +73,23 @@ export default function Home() {
       style={{ flex: 1, paddingTop: ios ? top : top + 10 }}
     >
       <View style={styles.main}>
+      {/* <CustomButtonHandle  /> */}
         <View style={styles.centerView}>
           <WeatherWidget />
         </View>
         <CustomModal isOpen={showModal} withInput>
           <View className="bg-gray-900 p-6 rounded-3xl w-full max-w-md mx-auto">
-            <TouchableOpacity onPress={() => setShowModal(false)} className="absolute top-4 right-4">
-              <AntDesign name="close" size={25} color="white" />
-            </TouchableOpacity>
-            <Text className="text-white text-xl font-bold mb-2">Nhập mã hub của bạn</Text>
-            <Text className="text-gray-400 mb-4">Bằng cách nhập mã, bạn sẽ đăng ký hub với Nestify và thêm vào bộ sưu tập của bạn</Text>
-            <Text className="text-white text-sm font-semibold mb-1">MÃ SẢN PHẨM MẪU</Text>
-            <Text className="text-gray-400 mb-4">AAAAA-BBBBB-CCCCC-DDDDD-EEEEE</Text>
-            <Text className="text-gray-400 mb-4">AAAABBBBCCCCDDDDEEEE</Text>
-            <TextInput
+              <View style={styles.headerContainer}>
+                <Text style={styles.headerText}>Nhập mã hub của bạn</Text>
+                <Pressable onPress={() => setShowModal(false)} style={styles.closeButton}>
+                  <AntDesign name="close" size={25} color="white" />
+                </Pressable>
+              </View>
+              <Text className="text-gray-400 mb-4">Bằng cách nhập mã, bạn sẽ đăng ký hub với Nestify và thêm vào bộ sưu tập của bạn</Text>
+              <Text className="text-white text-sm font-semibold mb-1">MÃ SẢN PHẨM MẪU</Text>
+              <Text className="text-gray-400 mb-4">AAAAA-BBBBB-CCCCC-DDDDD-EEEEE</Text>
+              <Text className="text-gray-400 mb-4">AAAABBBBCCCCDDDDEEEE</Text>
+              <TextInput
               className="bg-gray-800 text-white p-4 rounded-full mb-4"
               placeholder="Enter your code here..."
               placeholderTextColor="gray"
@@ -148,6 +153,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   greeting: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -189,6 +200,7 @@ const styles = StyleSheet.create({
   centerView: {
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 10
   },
   modalView: {
     backgroundColor: 'white',

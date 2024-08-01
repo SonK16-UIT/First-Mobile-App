@@ -51,7 +51,8 @@ export default function CustomDrawerContent(props) {
                     <DrawerItem
                         label="Logout"
                         onPress={handleLogout}
-                        icon={({ color, size }) => <MaterialIcons name="logout" color={color} size={size} />}
+                        icon={({ size }) => <MaterialIcons name="logout" color={'#A0A3BD'} size={size} style={styles.icon} />}
+                        labelStyle={styles.label}
                     />
                 </View>
             </DrawerContentScrollView>
@@ -95,6 +96,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.primary,
         paddingTop: 10,
+    },
+    icon: {
+        marginRight: -10, // Adjust this value as needed
+    },
+    label: {
+        color: '#A0A3BD',
+        marginLeft: -10, // Adjust this value as needed
     },
 });
 

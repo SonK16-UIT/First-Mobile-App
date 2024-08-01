@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const firebaseConfig = {
   apiKey: "AIzaSyBbJc68C2eNMOr6brPfK3PcelIZIxoOmsk",
   authDomain: "home-automation-raspi.firebaseapp.com",
+  databaseURL: "https://home-automation-raspi-default-rtdb.firebaseio.com",
   projectId: "home-automation-raspi",
   storageBucket: "home-automation-raspi.appspot.com",
   messagingSenderId: "667681328317",

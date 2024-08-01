@@ -268,7 +268,7 @@ const getSensorDataByUserId = async (hubId) => {
     let sensorData = [];
     if (snapshot.exists()) {
       snapshot.forEach((childSnapshot) => {
-        const device = { id: childSnapshot.key, ...childSnapshot.val() };
+        const device = { id: childSnapshot.key, name: childSnapshot.key, ...childSnapshot.val() };
         sensorData.push(device);
       });
     }
@@ -298,6 +298,49 @@ const updateStatus = async (HubId, deviceId, newStatus) => {
     return { success: false, msg: error.message };
   }
 };
+const fetchCommand = async (id) => {
+  try {
+    const deviceRef = ref(db, `Hub/${id}/command`);
+    const snapshot = await get(deviceRef);
+    if (snapshot.exists()) {
+      const command = snapshot.val();
+      console.log('Fetched command:', command);
+      return { success: true, command };
+    } else {
+      return { success: false, msg: 'Command not found' };
+    }
+  } catch (error) {
+    console.error('Error fetching command:', error);
+    return { success: false, msg: error.message };
+  }
+};
+const fetchHubName = async (hubId) => {
+  try {
+    const hubRef = ref(db, `Hub/${hubId}/name`);
+    const snapshot = await get(hubRef);
+    if (snapshot.exists()) {
+      const name = snapshot.val();
+      console.log('Fetched hub name:', name);
+      return { success: true, name };
+    } else {
+      return { success: false, msg: 'Hub name not found' };
+    }
+  } catch (error) {
+    console.error('Error fetching hub name:', error);
+    return { success: false, msg: error.message };
+  }
+};
+const updateHubName = async (hubId, name) => {
+  try {
+    const hubRef = ref(db, `Hub/${hubId}`);
+    await update(hubRef, { name });
+    console.log('Hub name updated successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating hub name:', error);
+    return { success: false, msg: error.message };
+  }
+};
   return (
     <AuthContext.Provider value={{
       user,
@@ -317,7 +360,10 @@ const updateStatus = async (HubId, deviceId, newStatus) => {
       connectToDevice,
       getSensorDataByUserId,
       updateStatus,
-      countDevicesByHubId
+      countDevicesByHubId,
+      fetchCommand,
+      fetchHubName,
+      updateHubName
     }}>
       {children}
     </AuthContext.Provider>
